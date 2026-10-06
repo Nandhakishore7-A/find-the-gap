@@ -1,0 +1,7 @@
+function safeUrl(value:unknown,fallback:string){try{const u=new URL(String(value));return ['http:','https:'].includes(u.protocol)?u.href:fallback}catch{return fallback}}
+export async function GET(){
+try{const r=await fetch('https://hn.algolia.com/api/v1/search_by_date?tags=show_hn&hitsPerPage=24',{signal:AbortSignal.timeout(12000)});if(!r.ok)throw Error();const d:any=await r.json();
+const items=d.hits.map((h:any)=>{const source='https://news.ycombinator.com/item?id='+encodeURIComponent(h.objectID);const name=String(h.title||'Untitled announcement').replace(/^Show HN:\s*/i,'');const text=name.toLowerCase();const category=/\b(ai|llm|gpt|agent|model)\b/.test(text)?'AI':/\b(code|api|developer|database|terminal|cli)\b/.test(text)?'Developer tools':/\b(payment|finance|bank)\b/.test(text)?'Fintech':/\b(task|notes|calendar|productivity|workflow)\b/.test(text)?'Productivity':'Other';return{id:'hn-'+h.objectID,name,description:'A public product announcement shared by its maker. Open the original discussion for product details and community feedback.',category,country:'Not disclosed',url:safeUrl(h.url,source),source,date:h.created_at,kind:'Public announcement'}});
+return Response.json({items,fetchedAt:new Date().toISOString(),source:'Show HN via Algolia'},{headers:{'Cache-Control':'public, max-age=120'}});
+}catch{return Response.json({error:'The announcement source could not be reached.'},{status:502})}}
+
